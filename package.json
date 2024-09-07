@@ -1,6 +1,6 @@
 {
   "name": "prisma-query-generator",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Convert raw text query to prisma where query.",
   "main": "index.js",
   "scripts": {
@@ -11,8 +11,8 @@
     "query",
     "generator"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "Kıraç Armağan Önal",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "lodash": "^4.17.21"
   }
