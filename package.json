@@ -6,7 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "prisma",
+    "query",
+    "generator"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
