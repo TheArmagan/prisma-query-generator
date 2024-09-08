@@ -18,14 +18,15 @@ const MathQueries = {
   ">=": "gte",
   "<=": "lte",
   "=": "equals",
-}
+};
 
 /**
  * @param {string} textQuery 
- * @param {Record<string, "number" | "string" | "boolean"> | null} validKeys 
+ * @param {Record<string, "number" | "string" | "boolean"> | null} validKeys
+ * @param {string[]} arrayKeys 
  * @returns {Record<string, any>}
  */
-function textToWhereQuery(textQuery = "", validKeys = null) {
+function textToWhereQuery(textQuery = "", validKeys = null, arrayKeys = []) {
   const query = {
     OR: [],
     AND: [],
@@ -38,6 +39,7 @@ function textToWhereQuery(textQuery = "", validKeys = null) {
     let key = match.groups.key;
     let expr = match.groups.expr;
     let values = fixValues(match.groups.value);
+    let isArrayKey = arrayKeys.includes(key);
 
     if (validKeys && validKeys[key] && values.some(x => typeof x !== validKeys[key])) return;
 
@@ -61,12 +63,14 @@ function textToWhereQuery(textQuery = "", validKeys = null) {
             break;
         }
 
+        let lastKey = isArrayKey ? "hasSome" : "in";
+
         if (query[method].some(x => _.has(x, key))) {
           let found = query[method].find(x => _.has(x, key));
-          let oldValues = _.get(found, `${key}.in`);
-          _.set(found, `${key}.in`, [...oldValues, ...values]);
+          let oldValues = _.get(found, `${key}.${lastKey}`, []);
+          _.set(found, `${key}.${lastKey}`, [...oldValues, ...values]);
         } else {
-          query[method].push(_.set({}, key, { in: values }));
+          query[method].push(_.set({}, key, { [lastKey]: values }));
         }
         break;
       }
@@ -91,7 +95,7 @@ function textToWhereQuery(textQuery = "", validKeys = null) {
           case "*":
           case "!*":
           case "?*":
-            queryType = "contains";
+            queryType = isArrayKey ? "has" : "contains";
             break;
           case "_*":
           case "!_*":
