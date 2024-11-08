@@ -110,7 +110,9 @@ function textToWhereQuery(textQuery = "", validKeys = null, arrayKeys = []) {
         }
 
         values.forEach(value => {
-          query[method].push(_.set({}, key, { [queryType]: value }));
+          const o = { [queryType]: value };
+          if (!isArrayKey) o.mode = "insensitive";
+          query[method].push(_.set({}, key, o));
         });
 
         break;
