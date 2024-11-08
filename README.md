@@ -63,10 +63,10 @@ console.log(
 ```
 
 ### Syntax
-> You can both use [] array or direct value.
+> You can both use [] array or direct value. If you want to use spaces in a value, you should use double quotes (""). 
 - `key:value` - key equals value
 - `key!:value` - key not equals value
-- `key!:[value1, value2]` - key greater than value
+- `key!:[value1, value2]` - key not equals value (multiple)
 - `key>:value` - key greater than value
 - `key<:value` - key less than value
 - `key>=:value` - key greater than or equals value
