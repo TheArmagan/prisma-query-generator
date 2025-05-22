@@ -26,6 +26,7 @@ const MathQueries = {
  * @param {Record<string, "number" | "string" | "boolean"> | null} [options.validKeys=null] - A map of valid keys and their expected types.
  * @param {Record<string, string[]>} [options.keyAliases={}] - A map of key aliases to their corresponding original keys.
  * @param {string[]} [options.arrayKeys=[]] - A list of keys that should be treated as arrays.
+ * @param {function} [options.processValues=(key, value) => value] - A function to process the values before adding them to the query.
  * @returns {Record<string, any>} The generated Prisma query object.
  */
 function textToWhereQuery({
@@ -33,6 +34,7 @@ function textToWhereQuery({
   validKeys = null,
   arrayKeys = [],
   keyAliases = {},
+  processValues = (key, value) => value,
 } = {}) {
   const query = {
     OR: [],
@@ -46,15 +48,20 @@ function textToWhereQuery({
     return {
       key: match.groups.key,
       expr: match.groups.expr,
-      values: fixValues(match.groups.value)
+      values: fixValues(match.groups.value),
     };
   });
 
-  mappedMatches.forEach(({ key, expr, values }) => {
+  mappedMatches.forEach(({ key, expr, values: originalValues }) => {
     const keysToProcess = keyAliases[key] ? keyAliases[key] : [key];
 
     keysToProcess.forEach(currentKey => {
       let isArrayKey = arrayKeys.includes(currentKey);
+
+      let values = originalValues.map(value => {
+        let res = processValues(currentKey, value);
+        return Array.isArray(res) ? res : [res];
+      }).flat();
 
       if (validKeys && validKeys[currentKey] && values.some(x => typeof x !== validKeys[currentKey])) return;
 

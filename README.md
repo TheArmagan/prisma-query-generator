@@ -12,6 +12,7 @@ const { textToWhereQuery } = require('prisma-query-generator');
  * @param {Record<string, "number" | "string" | "boolean"> | null} [options.validKeys=null] - A map of valid keys and their expected types.
  * @param {Record<string, string[]>} [options.keyAliases={}] - A map of key aliases to their corresponding original keys.
  * @param {string[]} [options.arrayKeys=[]] - A list of keys that should be treated as arrays.
+ * @param {function} [options.processValues=(key, value) => value] - A function to process the values before adding them to the query.
  * @returns {Record<string, any>} The generated Prisma query object.
  */
 
