@@ -21,12 +21,19 @@ const MathQueries = {
 };
 
 /**
- * @param {string} textQuery 
- * @param {Record<string, "number" | "string" | "boolean"> | null} validKeys
- * @param {string[]} arrayKeys 
- * @returns {Record<string, any>}
+ * @param {object} options - The options for generating the query.
+ * @param {string} [options.textQuery] - The text query string.
+ * @param {Record<string, "number" | "string" | "boolean"> | null} [options.validKeys=null] - A map of valid keys and their expected types.
+ * @param {Record<string, string[]>} [options.keyAliases={}] - A map of key aliases to their corresponding original keys.
+ * @param {string[]} [options.arrayKeys=[]] - A list of keys that should be treated as arrays.
+ * @returns {Record<string, any>} The generated Prisma query object.
  */
-function textToWhereQuery(textQuery = "", validKeys = null, arrayKeys = []) {
+function textToWhereQuery({
+  textQuery,
+  validKeys = null,
+  arrayKeys = [],
+  keyAliases = {},
+} = {}) {
   const query = {
     OR: [],
     AND: [],
@@ -35,101 +42,111 @@ function textToWhereQuery(textQuery = "", validKeys = null, arrayKeys = []) {
 
   const matches = [...textQuery.matchAll(QueryRegex)];
 
-  matches.forEach((match) => {
-    let key = match.groups.key;
-    let expr = match.groups.expr;
-    let values = fixValues(match.groups.value);
-    let isArrayKey = arrayKeys.includes(key);
+  const mappedMatches = matches.map(match => {
+    return {
+      key: match.groups.key,
+      expr: match.groups.expr,
+      values: fixValues(match.groups.value)
+    };
+  });
 
-    if (validKeys && validKeys[key] && values.some(x => typeof x !== validKeys[key])) return;
+  mappedMatches.forEach(({ key, expr, values }) => {
+    const keysToProcess = keyAliases[key] ? keyAliases[key] : [key];
 
-    if (expr === "") expr = "=";
+    keysToProcess.forEach(currentKey => {
+      let isArrayKey = arrayKeys.includes(currentKey);
 
-    switch (expr) {
-      case "!":
-      case "?":
-      case "=": {
-        let method;
+      if (validKeys && validKeys[currentKey] && values.some(x => typeof x !== validKeys[currentKey])) return;
 
-        switch (expr) {
-          case "!":
-            method = "NOT";
-            break;
-          case "?":
-            method = "OR";
-            break;
-          case "=":
-            method = "AND";
-            break;
+      let currentExpr = expr;
+      if (currentExpr === "") currentExpr = "=";
+
+      switch (currentExpr) {
+        case "!":
+        case "?":
+        case "=": {
+          let method;
+
+          switch (currentExpr) {
+            case "!":
+              method = "NOT";
+              break;
+            case "?":
+              method = "OR";
+              break;
+            case "=":
+              method = "AND";
+              break;
+          }
+
+          let lastKey = isArrayKey ? "hasSome" : "in";
+
+          if (query[method].some(x => _.has(x, currentKey))) {
+            let found = query[method].find(x => _.has(x, currentKey));
+            let oldValues = _.get(found, `${currentKey}.${lastKey}`, []);
+            _.set(found, `${currentKey}.${lastKey}`, [...oldValues, ...values]);
+          } else {
+            query[method].push(_.set({}, currentKey, { [lastKey]: values }));
+          }
+          break;
         }
+        case "*":
+        case "_*":
+        case "*_":
+        case "!*":
+        case "!_*":
+        case "!*_":
+        case "?*":
+        case "?_*":
+        case "?*_": {
+          let method;
 
-        let lastKey = isArrayKey ? "hasSome" : "in";
+          if (currentExpr.startsWith("!")) method = "NOT";
+          else if (currentExpr.startsWith("?")) method = "OR";
+          else method = "AND";
 
-        if (query[method].some(x => _.has(x, key))) {
-          let found = query[method].find(x => _.has(x, key));
-          let oldValues = _.get(found, `${key}.${lastKey}`, []);
-          _.set(found, `${key}.${lastKey}`, [...oldValues, ...values]);
-        } else {
-          query[method].push(_.set({}, key, { [lastKey]: values }));
+          let queryType;
+
+          switch (currentExpr) {
+            case "*":
+            case "!*":
+            case "?*":
+              queryType = isArrayKey ? "has" : "contains";
+              break;
+            case "_*":
+            case "!_*":
+            case "?_*":
+              queryType = "startsWith";
+              break;
+            case "*_":
+            case "!*_":
+            case "?*_":
+              queryType = "endsWith";
+              break;
+          }
+
+          values.forEach(value => {
+            const o = { [queryType]: value };
+            if (!isArrayKey) o.mode = "insensitive";
+            query[method].push(_.set({}, currentKey, o));
+          });
+
+          break;
         }
-        break;
+        case ">":
+        case "<":
+        case ">=":
+        case "<=": {
+          if (query.AND.some(x => _.has(x, currentKey))) {
+            let found = query.AND.find(x => _.has(x, currentKey));
+            _.set(found, `${currentKey}.${MathQueries[currentExpr]}`, values[0]);
+          } else {
+            query.AND.push(_.set({}, currentKey, { [MathQueries[currentExpr]]: values[0] }));
+          }
+          break
+        }
       }
-      case "*":
-      case "_*":
-      case "*_":
-      case "!*":
-      case "!_*":
-      case "!*_":
-      case "?*":
-      case "?_*":
-      case "?*_": {
-        let method;
-
-        if (expr.startsWith("!")) method = "NOT";
-        else if (expr.startsWith("?")) method = "OR";
-        else method = "AND";
-
-        let queryType;
-
-        switch (expr) {
-          case "*":
-          case "!*":
-          case "?*":
-            queryType = isArrayKey ? "has" : "contains";
-            break;
-          case "_*":
-          case "!_*":
-          case "?_*":
-            queryType = "startsWith";
-            break;
-          case "*_":
-          case "!*_":
-          case "?*_":
-            queryType = "endsWith";
-            break;
-        }
-
-        values.forEach(value => {
-          const o = { [queryType]: value };
-          if (!isArrayKey) o.mode = "insensitive";
-          query[method].push(_.set({}, key, o));
-        });
-
-        break;
-      }
-      case ">":
-      case "<":
-      case ">=":
-      case "<=": {
-        if (query.AND.some(x => _.has(x, key))) {
-          let found = query.AND.find(x => _.has(x, key));
-          _.set(found, `${key}.${MathQueries[expr]}`, values[0]);
-        } else {
-          query.AND.push(_.set({}, key, { [MathQueries[expr]]: values[0] }));
-        }
-        break
-      }
-    }
+    });
   });
 
   if (query.OR.length === 0) delete query.OR;

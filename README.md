@@ -6,9 +6,20 @@
 ```js
 const { textToWhereQuery } = require('prisma-query-generator');
 
+/**
+ * @param {object} options - The options for generating the query.
+ * @param {string} [options.textQuery] - The text query string.
+ * @param {Record<string, "number" | "string" | "boolean"> | null} [options.validKeys=null] - A map of valid keys and their expected types.
+ * @param {Record<string, string[]>} [options.keyAliases={}] - A map of key aliases to their corresponding original keys.
+ * @param {string[]} [options.arrayKeys=[]] - A list of keys that should be treated as arrays.
+ * @returns {Record<string, any>} The generated Prisma query object.
+ */
+
 console.log(
   textToWhereQuery(
-    'tags:banana tags!:apple likes>:50 likes<:300 type?:[video, "text with space"], file.width>:1000 name*:contains'
+    {
+      textQuery: `tags:banana tags!:apple likes>:50 likes<:300 type?:[video, "text with space"], file.width>:1000 name*:contains`,
+    }
   )
 );
 
