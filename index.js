@@ -1,6 +1,6 @@
 const _ = require("lodash");
 
-const QueryRegex = /(?<key>[a-zA-Z0-9._-]+?)(?<expr>>=|<=|!_\*|!\*_|\?_\*|\?\*_|!\*|_\*|\*_|\?\*|>|<|=|\*|\?|!):(?<value>\[(?:(?:"[^"]+?"|[^, ]+|\d+)(?: {0,}, {0,})?)+\]|"[^"]+?"|[^, ]+|\d+)/g;
+const QueryRegex = /(?<key>[a-zA-Z0-9._-]+?)(?<expr>>=|<=|!_\*|!\*_|\?_\*|\?\*_|!\*|_\*|\*_|\?\*|>|<|=|\*|\?|!)?:(?<value>\[(?:(?:"[^"]+?"|[^, ]+|\d+)(?: {0,}, {0,})?)+\]|"[^"]+?"|[^, ]+|\d+)/g;
 const FixValueRegex1 = /([^,\[\]]+)/g;
 const FixValueRegex2 = /^(?:-?\d+(?:\.\d+)?|true|false|null)$/;
 
@@ -59,7 +59,7 @@ function textToWhereQuery({
     // If there are aliases, we need to create OR conditions for each value
     if (hasAliases) {
       let currentExpr = expr;
-      if (currentExpr === "") currentExpr = "=";
+      if (currentExpr === "" || currentExpr === undefined) currentExpr = "=";
 
       let targetMethod;
       switch (currentExpr) {
@@ -176,7 +176,7 @@ function textToWhereQuery({
         if (validKeys && validKeys[currentKey] && values.some(x => typeof x !== validKeys[currentKey])) return;
 
         let currentExpr = expr;
-        if (currentExpr === "") currentExpr = "=";
+        if (currentExpr === "" || currentExpr === undefined) currentExpr = "=";
 
         switch (currentExpr) {
           case "!":
