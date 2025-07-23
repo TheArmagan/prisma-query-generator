@@ -1,6 +1,6 @@
 {
   "name": "prisma-query-generator",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Convert raw text query to prisma where query.",
   "main": "index.js",
   "types": "index.d.ts",
