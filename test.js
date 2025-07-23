@@ -3,15 +3,14 @@ const util = require("util");
 console.log(
   util.inspect(
     textToWhereQuery({
-      textQuery: `all?*:["teg1", "mechanical wings"] platforms*:"Android"`,
+      textQuery: `all_tags*:"boy" all_tags*:"male" all_tags!*:["anime"]`,
       keyAliases: {
-        all: ["name", "description", "ai_tags"],
-      },
-      processValues: (key, value) => {
-        if (key === "ai_tags") {
-          return [value.replace(/ +/g, "_"), value];
-        }
-        return value;
+        all_tags: [
+          "tags",
+          "user_tags",
+          "ai_tags",
+          "ai_tags_v2"
+        ]
       }
     }),
     { depth: null, colors: true }

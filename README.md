@@ -90,6 +90,6 @@ console.log(
 - `key!*:value` - key not contains value
 - `key!_*:value` - key not starts with value
 - `key!*_:value` - key not ends with value
-- `key?*:value` - key not contains value (or)
-- `key?_*:value` - key not starts with value (or)
-- `key?*_:value` - key not ends with value (or)
+- `key?*:value` - key contains value (or)
+- `key?_*:value` - key starts with value (or)
+- `key?*_:value` - key ends with value (or)
