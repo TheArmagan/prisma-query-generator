@@ -80,81 +80,89 @@ function textToWhereQuery({
           break;
       }
 
-      // For each value, create an OR condition with all aliases
-      originalValues.forEach(originalValue => {
-        const aliasConditions = [];
+      // For aliases, create an OR condition where each alias has ALL values
+      const aliasConditions = [];
 
-        keysToProcess.forEach(currentKey => {
-          let isArrayKey = arrayKeys.includes(currentKey);
-          let processedValues = [originalValue].map(value => {
-            let res = processValues(currentKey, value);
-            return Array.isArray(res) ? res : [res];
-          }).flat();
+      keysToProcess.forEach(currentKey => {
+        let isArrayKey = arrayKeys.includes(currentKey);
+        let processedValues = originalValues.map(value => {
+          let res = processValues(currentKey, value);
+          return Array.isArray(res) ? res : [res];
+        }).flat();
 
-          if (validKeys && validKeys[currentKey] && processedValues.some(x => typeof x !== validKeys[currentKey])) return;
+        if (validKeys && validKeys[currentKey] && processedValues.some(x => typeof x !== validKeys[currentKey])) return;
 
-          processedValues.forEach(value => {
-            const condition = {};
+        // For each alias, create conditions for ALL values
+        const keyConditions = [];
 
-            switch (currentExpr) {
-              case "!":
-              case "?":
-              case "=": {
-                let lastKey = isArrayKey ? "hasSome" : "in";
-                _.set(condition, currentKey, { [lastKey]: [value] });
-                break;
-              }
-              case "*":
-              case "_*":
-              case "*_":
-              case "!*":
-              case "!_*":
-              case "!*_":
-              case "?*":
-              case "?_*":
-              case "?*_": {
-                let queryType;
-                switch (currentExpr.replace(/^[!?]/, '')) {
-                  case "*":
-                    queryType = isArrayKey ? "has" : "contains";
-                    break;
-                  case "_*":
-                    queryType = "startsWith";
-                    break;
-                  case "*_":
-                    queryType = "endsWith";
-                    break;
-                }
+        processedValues.forEach(value => {
+          const condition = {};
 
-                const o = { [queryType]: value };
-                if (!isArrayKey) o.mode = "insensitive";
-                _.set(condition, currentKey, o);
-                break;
-              }
-              case ">":
-              case "<":
-              case ">=":
-              case "<=": {
-                _.set(condition, currentKey, { [MathQueries[currentExpr]]: value });
-                break;
-              }
+          switch (currentExpr) {
+            case "!":
+            case "?":
+            case "=": {
+              let lastKey = isArrayKey ? "hasSome" : "in";
+              _.set(condition, currentKey, { [lastKey]: [value] });
+              break;
             }
+            case "*":
+            case "_*":
+            case "*_":
+            case "!*":
+            case "!_*":
+            case "!*_":
+            case "?*":
+            case "?_*":
+            case "?*_": {
+              let queryType;
+              switch (currentExpr.replace(/^[!?]/, '')) {
+                case "*":
+                  queryType = isArrayKey ? "has" : "contains";
+                  break;
+                case "_*":
+                  queryType = "startsWith";
+                  break;
+                case "*_":
+                  queryType = "endsWith";
+                  break;
+              }
 
-            if (Object.keys(condition).length > 0) {
-              aliasConditions.push(condition);
+              const o = { [queryType]: value };
+              if (!isArrayKey) o.mode = "insensitive";
+              _.set(condition, currentKey, o);
+              break;
             }
-          });
+            case ">":
+            case "<":
+            case ">=":
+            case "<=": {
+              _.set(condition, currentKey, { [MathQueries[currentExpr]]: value });
+              break;
+            }
+          }
+
+          if (Object.keys(condition).length > 0) {
+            keyConditions.push(condition);
+          }
         });
 
-        // Add the OR condition containing all aliases
-        if (aliasConditions.length > 0) {
-          if (aliasConditions.length === 1) {
-            query[targetMethod].push(aliasConditions[0]);
-          } else {
-            query[targetMethod].push({ OR: aliasConditions });
-          }
+        // If we have multiple conditions for the same key (multiple values), wrap them in AND
+        if (keyConditions.length > 1) {
+          aliasConditions.push({ AND: keyConditions });
+        } else if (keyConditions.length === 1) {
+          aliasConditions.push(keyConditions[0]);
         }
       });
+
+      // Add the OR condition containing all aliases
+      if (aliasConditions.length > 0) {
+        if (aliasConditions.length === 1) {
+          query[targetMethod].push(aliasConditions[0]);
+        } else {
+          query[targetMethod].push({ OR: aliasConditions });
+        }
+      }
     } else {
       // Original logic for non-aliased keys
       keysToProcess.forEach(currentKey => {

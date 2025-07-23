@@ -3,7 +3,7 @@ const util = require("util");
 console.log(
   util.inspect(
     textToWhereQuery({
-      textQuery: `all_tags*:"boy" all_tags*:"male" all_tags!*:["anime"]`,
+      textQuery: `all_tags*:["boy", "male"] all_tags!*:["anime"]`,
       keyAliases: {
         all_tags: [
           "tags",
